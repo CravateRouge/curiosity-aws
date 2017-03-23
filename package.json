@@ -1,0 +1,19 @@
+{
+    "name": "curiosity-aws",
+    "author": {
+        "name": "CravateRouge"
+    },
+    "description": "Simplified version of Curiosity for an AWS project",
+    "homepage": "https://github.com/CravateRouge/curiosity-aws",
+    "version": "0.1.0",
+    "repository": {
+        "type" : "git",
+        "url" : "https://github.com/CravateRouge/curiosity-aws.git"
+    },
+    "dependencies": {
+        "express": "^4.14"
+    },
+    "engines": {
+        "node": ">=0.10"
+    }
+}
