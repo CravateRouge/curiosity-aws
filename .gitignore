@@ -1,0 +1,5 @@
+# except this file
+!node_modules/tower.js
+
+# ignore npm modules
+node_modules/*
