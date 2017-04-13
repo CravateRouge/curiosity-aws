@@ -1,0 +1,14 @@
+{% extends "base.twig" %}
+
+{% block title %}Score Board{% endblock %}
+
+{% block ws %}<script type="text/javascript" src="scripts/dynamicTable.js"></script>{% endblock %}
+
+{% block content %}
+    <table id="scores" class="table table-striped">
+        <thead><th>Joueurs</th><th>Scores</th></thead>
+        <tbody></tbody>
+    </table>
+{% endblock %}       
+            
+{% block score %}{% endblock %}

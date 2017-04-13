@@ -1,0 +1,11 @@
+#cube-container{
+    height : 100%;
+    width : 100%;
+    background-image: url('cubeBackgroundLow.jpeg');
+    background-position: center;
+    background-size:contain;
+    background-repeat: no-repeat;
+}
+body{
+    margin:0;
+}

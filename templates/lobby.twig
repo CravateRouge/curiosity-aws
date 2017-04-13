@@ -1,0 +1,40 @@
+{% extends "base.twig" %}
+
+
+{% block title %}Salle d'attente{% endblock %}
+{% block ws %}<script type="text/javascript" src="scripts/dynamicTable.js"></script>{% endblock %}
+
+{% block content %}
+ <form method="get" action="/game" class="form-signin">
+            <input type="hidden" name="room" id="room" value=''/>
+             <script>
+   
+                        var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+                        var string_length = 10;
+                        var randomstring = '';
+                        for (var i=0; i<string_length; i++) {
+                                var rnum = Math.floor(Math.random() * chars.length);
+                                randomstring += chars.substring(rnum,rnum+1);
+                            }
+                        document.getElementById("room").value = randomstring;
+            </script>
+            
+            <label class="control-label" for="length">Choisissez la taille d'arrête du cube (en mini-cubes).</label>
+            <input type="number" class ="form-control" name="length" value="10" max="55" min="1" required>
+            
+            <label class="control-label" for="layer">Choisissez le nombre de couches du cube.</label>
+            <input type="number" class ="form-control" name="layer" value="4" min="1" required>
+            
+           <input type="submit" class="btn btn-primary" value="Creer nouvelle Partie"/>
+ </form>
+ 
+ <div id="rooms_forms"></div>
+ 
+ <table id="rooms" class="table table-striped">
+     <thead><tr><th>Salles</th><th>Tailles des cubes</th><th>Nombres de couches</th></tr></thead>
+     <tbody></tbody>
+    </table>
+    
+{% endblock %}
+
+{% block sroom %}{% endblock %}

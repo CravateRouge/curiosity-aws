@@ -1,0 +1,19 @@
+{% extends "base.twig" %}
+
+{% block ws %}{% endblock %}
+{% block title %}Bienvenue{% endblock %}
+
+
+{% block content %}
+
+<p class="text-primary lead text-center">Bienvenue. Si vous voulez jouer, veuillez vous connecter ou créer un compte.</p>
+
+{% endblock %}
+
+
+{% block menu %}
+    <label class="control-label" for="redirect">Que voulez vous faire ?</label>
+    <select class="form-control" name="redirect">
+    <option value="signin">Se connecter</option>
+    <option value="signup">Creer un compte</option>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.twig" %}
+
+{% block ws %}{% endblock %}
+
+{% block content %}
+<p class="text-info text-center lead">{% block message %}{%endblock %}</p>
+{% endblock %}
+
+{% block menu %}
+    <label class="control-label" for="login">Login</label>
+    <input type="text" class="form-control" name="login" placeholder="{% block loginText %}{% endblock %}" value="" required>
+    
+    <label class="control-label" for="login">Mot de passe</label>
+    <input type="password" class="form-control" name="pass" placeholder="{% block passText %}{% endblock %}" value="" required>
+       
+    {% if error %}
+        <p class="error">Erreur: {{ error }}</p>
+    {% endif %}
+
+{% endblock %}

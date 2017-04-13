@@ -1,0 +1,25 @@
+{% extends "base.twig" %}
+
+{% block ws %}{% endblock %}
+{% block scripts %}
+    {{ parent() }}
+    <script type="text/javascript" src="scripts/three.js"></script>
+    <script type="text/javascript" src="scripts/OrbitControls.js"></script>
+    <script type="text/javascript" src="scripts/unobstrusive.js"></script>
+{% endblock %}
+
+{% block title %}What's inside the cube?{% endblock %}
+
+{% block content %}
+
+    <div id="board">
+        <canvas id="cube-container"></canvas>
+        <p class="text-info">Coins: <ins id="coins"></ins> </p>
+    </div>
+        
+        <button type="button" class="btn btn-danger" id="exclu">Exclusivity</button>
+        <button type="button" class="btn btn-danger" id="autoClick">Auto-Clicker</button>
+        <button type="button" class="btn btn-danger" id="big">Big Impact</button>
+  
+{% endblock %}
+
