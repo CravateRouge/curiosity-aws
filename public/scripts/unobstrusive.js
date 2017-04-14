@@ -8,7 +8,10 @@ var color;
 var shake = 0;
 var clicks = 0;
 var clickOK = false;
-var auto
+var auto;
+var bIPrice = 10;
+var aCPrice = 10;
+var exPrice = 10;
 
 window.onload = function() {
 
@@ -16,11 +19,29 @@ window.onload = function() {
 	var board = document.querySelector('#board');
 	var cubeContainer = document.querySelector('#cube-container');
 	var exclu = document.querySelector('#exclu');
+	var patt = /\d+/;
+	exPrice = patt.exec(exclu.textContent)[0];
 	var autoClick = document.querySelector('#autoClick');
+	aCPrice = patt.exec(autoClick.textContent)[0];
 	var big = document.querySelector('#big');
+	bIPrice = patt.exec(big.textContent)[0];
 
 	/*Init 3D*/
 	var scene = new THREE.Scene();
+
+	//Add some lights
+
+	for (var i = 0; i < 6; i++) {
+		var pos = [0, 0, 0];
+		var light = new THREE.PointLight(0xffffff, 1.5);
+		pos[i % 3] = (3 - i) == 0 ? -60 : 60 * (3 - i) / Math.abs(3 - i);
+		light.position.set(pos[0], pos[1], pos[2]);
+		scene.add(light);
+	}
+
+	// var light = new THREE.PointLight(0xffffff, 1.5);
+	// light.position.set(Infinity, 0, 0);
+	// scene.add(light);
 
 	var camera = new THREE.PerspectiveCamera(75, cubeContainer.offsetWidth / cubeContainer.offsetHeight, 0.1, 1000);
 	camera.position.z = 100;
@@ -30,7 +51,7 @@ window.onload = function() {
 	});
 	renderer.setSize(cubeContainer.offsetWidth, cubeContainer.offsetHeight);
 	//The cube is empty until the server sends data
-	var cube = null;
+	var cube = undefined;
 
 	//Used to know the tile touched
 	var mouse = new THREE.Vector2();
@@ -40,57 +61,51 @@ window.onload = function() {
 	var controls = new THREE.OrbitControls(camera, renderer.domElement);
 	//Disable shifting
 	controls.enablePan = false;
+
 	controls.addEventListener('change', render);
 	cubeContainer.addEventListener('click', clickUpdate, false);
 
 	//Bonus Eventlistener
-	exclu.addEventListener('click', startExclu);
-	autoClick.addEventListener('click', startAutoClick);
-	big.addEventListener('click', startBig);
+	exclu.addEventListener('click', () => {
+		sendBonus(exPrice, 'exclu')
+	});
+	autoClick.addEventListener('click', () => {
+		sendBonus(aCPrice, 'autoClick')
+	});
+	big.addEventListener('click', () => {
+		sendBonus(bIPrice, 'big')
+	});
 
 	//Render the scene
 	function render() {
 		renderer.render(scene, camera);
 	}
 
-
-	function startExclu(event) {
-		event.preventDefault();
-		ws.send(JSON.stringify({
-			id: 'exclu',
-			type: 'bonus'
-		}));
-	}
-
-	function startAutoClick(event) {
-		event.preventDefault();
-		ws.send(JSON.stringify({
-			id: 'autoClick',
-			type: 'bonus'
-		}));
-	}
-
-	function startBig(event) {
-		event.preventDefault();
-		ws.send(JSON.stringify({
-			id: 'big',
-			type: 'bonus'
-		}));
+	function sendBonus(price, idBonus) {
+		if (coinsValue >= price) {
+			ws.send(JSON.stringify({
+				id: idBonus,
+				type: 'bonus'
+			}));
+			printCoins(-price);
+		}
 	}
 
 	//Updating server's information
 	function clickUpdate(event) {
 		event.preventDefault();
+
 		//Take click's coordinates and check if a tile is touched
 		mouse.x = (event.offsetX / cubeContainer.offsetWidth) * 2 - 1;
 		mouse.y = -(event.offsetY / cubeContainer.offsetHeight) * 2 + 1;
+
 		raycaster.setFromCamera(mouse, camera);
 		var intersects = raycaster.intersectObject(cube);
 		//If a tile is touched send information to the server
 		if (intersects.length > 0) {
 			var position = intersects[0].faceIndex;
-			position = position % 2 == 0 ? position : position - 1;
-			position = position / 2;
+			position = Math.floor(position / 2);
+
 			//Send the tile's id to the server
 			if (shake > 0) {
 				for (var i = -1; i < 1; i++) {
@@ -131,17 +146,11 @@ window.onload = function() {
 
 	function towerRenderer(towerTiles) {
 		//Add the coins counter and the cube
-		if (cube) {
-			scene.remove(cube);
-			cube.geometry.dispose();
-			cube.material.dispose();
-			cube = null;
-		}
-
 
 		color = layerColor(actualLayer);
 		var geometry = new THREE.BoxGeometry(50, 50, 50, length, length, length);
-		var material = new THREE.MeshBasicMaterial();
+
+		var material = new THREE.MeshLambertMaterial();
 		material.vertexColors = THREE.FaceColors;
 
 		var futureColor = layerColor(actualLayer - 1);
@@ -221,15 +230,13 @@ window.onload = function() {
 		board.appendChild(div);
 	}
 
-	function bigOK(test) {
-		if (test) shake = 10;
+	function bigOK() {
+		shake = 15;
 	}
 
-	function autoClickOK(test) {
-		if (test) {
-			clickOK = true;
-			clicks = 10;
-		}
+	function autoClickOK() {
+		clickOK = true;
+		clicks = 20;
 	}
 
 	function clicking() {
@@ -276,12 +283,12 @@ window.onload = function() {
 					break;
 
 				case 'big':
-					bigOK(data.value);
+					bigOK();
 					break;
 
 				case 'autoClick':
-					autoClickOK(data.value);
-					auto = setInterval(clicking, 5000);
+					autoClickOK();
+					auto = setInterval(clicking, 2000);
 					break;
 
 				default:

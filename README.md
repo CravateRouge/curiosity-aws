@@ -14,9 +14,9 @@ TODO
 - [x] Create a real kernel
 - [x] Add a relevant session secret
 - [x] Improve the form page and error responses
-- [ ] Set upgrades + prices
+- [x] Set upgrades + prices
 - [x] Several games together
 - [x] Add drag, wheel, [touch-sensitive] features
 - [x] 3D
-- [ ] add coins view in start game and add score view
-- [ ] prettify code
+- [x] add coins view in start game and add score view
+- [x] prettify code

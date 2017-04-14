@@ -20,6 +20,11 @@ app.set("twig options", {
 
 //Game instances
 var towerInstances = {};
+var exclusivity = {};
+var bIPrice = 10;
+var aCPrice = 10;
+var exPrice = 10;
+
 
 var sess_storage = session({
     secret: "|<|_|.-|05|+`/ \\/\\/}{4+'2 ||\\| +3}{ 94|\\/|3?",
@@ -32,6 +37,7 @@ var connStr = 'mongodb://localhost/data';
 mongoose.connect(connStr, function(err) {
     if (err) throw err;
     console.log('Successfully connected to MongoDB');
+    User.updateMany({connected : true},{$set:{connected:false}}).exec();
 });
 
 
@@ -147,6 +153,11 @@ app.all('/signin', function(req, res) {
 
 //Game page route (Connection needed)
 app.all('/game', function(req, res) {
+    if (!req.session.login) {
+        res.redirect('/');
+        return;
+    }
+
     if (req.method == 'POST') {
         res.redirect('/' + req.body['redirect']);
         return;
@@ -163,7 +174,8 @@ app.all('/game', function(req, res) {
     //Create a new game instance if specific room doesnt exist
     else if (!towerInstances[gameName]) {
         towerInstances[gameName] = new tower.Tower(req.query['length'], req.query['layer']);
-        res.render('curiosity.twig');
+        exclusivity[gameName] = null;
+        res.render('curiosity.twig',{'bIPrice':bIPrice,'aCPrice':aCPrice,'exPrice':exPrice});
     }
 
     else if (towerInstances[gameName].layer != req.query['layer'] ||
@@ -171,12 +183,12 @@ app.all('/game', function(req, res) {
         res.redirect('/logout');
 
     else
-        res.render('curiosity.twig');
+        res.render('curiosity.twig',{'bIPrice':bIPrice,'aCPrice':aCPrice,'exPrice':exPrice});
 });
 
 //Room selection page route (Connection needed)
 app.all('/lobby', function(req, res) {
-    if (!req.session) res.redirect('/');
+    if (!req.session.login) res.redirect('/');
 
     else if (req.method == 'GET') res.render('lobby.twig');
 
@@ -186,7 +198,7 @@ app.all('/lobby', function(req, res) {
 
 //Score page route (Connection needed)
 app.all('/score', function(req, res) {
-    if (!req.session) res.redirect('/');
+    if (!req.session.login) res.redirect('/');
 
     else if (req.method == 'GET') res.render('scoreBoard.twig');
 
@@ -205,22 +217,19 @@ app.get('/logout', function(req, res) {
 var server = http.createServer(app);
 var wsserver = new ws.Server({
     server: server,
-    // Ceci permet d'importer la session dans le serveur WS, qui
-    // la mettra à disposition dans wsconn.upgradeReq.session, voir
-    // https://github.com/websockets/ws/blob/master/examples/express-session-parse/index.js
     verifyClient: function(info, next) {
         sess_storage(info.req, {}, function(err) {
             if (err) {
                 next(false, 500, "Error: " + err);
             }
             else {
-                // Passer false pour refuser la connexion WS
                 next(true);
             }
         });
     },
 });
 
+//Used to update the score and room tables
 setInterval(function() {
         User.find({
             connected: true
@@ -264,18 +273,39 @@ wsserver.on('connection', function(wsconn) {
     if (!login)
         return;
 
-    User.update({
-        _id: login
-    }, {
-        $set: {
-            connected: true
-        }
-    }).exec();
 
     //Import url and query from specific the specific websocket
     //this helps to know on which page the user is/in which game room the user is
     var userUrl = wsconn.upgradeReq.url;
 
+    User.findByIdAndUpdate(login, {
+        $set: {
+            connected: true
+        }
+    }, function(err, user) {
+        if (err) throw err;
+
+        //Case where user is at the game page
+        if (userUrl.indexOf('game') > -1) {
+
+            var gameName = /room=((\w|\d){10})/.exec(userUrl)[1];
+            //Send initialization parameters at the establishment of a new connection
+            wsconn.send(JSON.stringify({
+                type: 'initialization',
+                towerTiles: towerInstances[gameName].towerTiles,
+                level: towerInstances[gameName].actualLayer,
+                side: towerInstances[gameName].lengthSide,
+                surface: towerInstances[gameName].layerLength,
+                actuSurface: towerInstances[gameName].actuLayerLength,
+                coinsValue: user.coins
+            }));
+
+            //Trigger a treatment when a tile is clicked
+            wsconn.on('message', (data) => {
+                messenger(wsconn, userUrl, login, data, gameName);
+            });
+        }
+    });
 
     if (userUrl == "/score")
         User.find({
@@ -298,152 +328,153 @@ wsserver.on('connection', function(wsconn) {
             'towerInstances': towerInstances
         }));
 
-    //Case where user is at the game page
-    if (userUrl.indexOf('game') > -1) {
-        var gameName = /room=((\w|\d){10})/.exec(userUrl)[1];
-        //Send initialization parameters at the establishment of a new connection
-        User.findOne({
-            _id: login
-        }, 'coins', function(err, user) {
-            if (err) throw err;
-            wsconn.send(JSON.stringify({
-                type: 'initialization',
-                towerTiles: towerInstances[gameName].towerTiles,
-                level: towerInstances[gameName].actualLayer,
-                side: towerInstances[gameName].lengthSide,
-                surface: towerInstances[gameName].layerLength,
-                actuSurface: towerInstances[gameName].actuLayerLength,
-                coinsValue: user.coins
-            }));
-        });
-    }
 
-
-    //Trigger a treatment when a tile is clicked
-    wsconn.on('message', function(data) {
-        data = JSON.parse(data);
-        if (data.type == 'click') {
-            var change = towerInstances[gameName].decrement(data.id);
-            if (change) {
-                // Broadcast to everybody
-                wsserver.clients.forEach(function each(client) {
-                    if (client.readyState === ws.OPEN && client.upgradeReq.url == userUrl) {
-                        //If someone wins, print the winner
-                        if (change == 'WIN') {
-                            if (client.upgradeReq.session.login !== login)
-                                client.send(JSON.stringify({
-                                    type: 'defeat',
-                                    winner: login
-                                }));
-                            else
-                                client.send(JSON.stringify({
-                                    type: 'win'
-                                }));
-
-                            client.close();
-                        }
-                        //If a tile is destroyed the update is sent to players
-                        else {
-                            client.send(JSON.stringify({
-                                type: 'destruction',
-                                id: data.id
-                            }));
-                        }
-                    }
-
-                });
-
-                if (change == 'WIN')
-                    delete towerInstances[gameName];
-
-                else
-                //Send coin to the clicker
-                    wsconn.send(JSON.stringify({
-                    type: 'coin',
-                    value: 1
-                }));
-
-                //Increment clickers points and score by 1
-                User.update({
-                    _id: login
-                }, {
-                    $inc: {
-                        score: 1,
-                        coins: 1
-                    }
-                }).exec();
-            }
-        }
-        else if (data.type == 'bonus') {
-            switch (data.id) {
-                case 'exclu':
-                    break;
-                case 'autoClick':
-                    User.findOne({
-                        _id: login
-                    }, function(err, user) {
-                        if (err) throw err;
-                        if (user.coins >= 10) {
-                            User.update({
-                                _id: user._id
-                            }, {
-                                $inc: {
-                                    coins: -10
-                                }
-                            });
-                            wsconn.send(JSON.stringify({
-                                type: 'autoClick',
-                                value: true
-                            }));
-                        }
-                        else
-                            wsconn.send(JSON.stringify({
-                                type: 'autoClick',
-                                value: false
-                            }));
-                    });
-                    break;
-                case 'big':
-                    User.findOne({
-                        _id: login
-                    }, function(err, user) {
-                        if (err) throw err;
-                        if (user.coins >= 10) {
-                            User.update({
-                                _id: user._id
-                            }, {
-                                $inc: {
-                                    coins: -10
-                                }
-                            });
-                            wsconn.send(JSON.stringify({
-                                type: 'big',
-                                value: true
-                            }));
-                        }
-                        else
-                            wsconn.send(JSON.stringify({
-                                type: 'big',
-                                value: false
-                            }));
-                    });
-                    break;
-
-                default:
-                    console.log('An unknown message has been sent: ' + data);
-            }
-        }
-    });
-
-    wsconn.on('close', function() {
-        User.update({
-            _id: login
-        }, {
-            $set: {
-                connected: false
-            }
-        }).exec();
-    });
+    wsconn.on('close', wsClose);
 });
 
 server.listen(process.env.PORT);
+
+
+
+// ***** FUNCTIONS USED BY APP *****
+
+
+//Set connected to false when the ws is closed
+function wsClose(login) {
+    User.update({
+        _id: login
+    }, {
+        $set: {
+            connected: false
+        }
+    }).exec();
+}
+
+//
+function clicker(wsconn, userUrl, login, gameName, data) {
+
+    var change = towerInstances[gameName].decrement(data);
+
+    if (!change)
+        return;
+
+    //Send coin to the clicker
+    wsconn.send(JSON.stringify({
+        type: 'coin',
+        value: 1
+    }));
+
+    var process = (client) => {
+        client.send(JSON.stringify({
+            type: 'destruction',
+            id: data
+        }));
+    };
+
+    //If someone wins, print the winner
+    if (change == 'WIN') {
+        delete towerInstances[gameName];
+
+        process = (client) => {
+            if (client.upgradeReq.session.login !== login)
+                client.send(JSON.stringify({
+                    type: 'defeat',
+                    winner: login
+                }));
+
+            else
+                client.send(JSON.stringify({
+                    type: 'win'
+                }));
+
+            client.close();
+        };
+    }
+
+    // Broadcast to everybody
+    wsserver.clients.forEach((client) => {
+        if (client.readyState != ws.OPEN || client.upgradeReq.url != userUrl)
+            return;
+        process(client);
+    });
+
+
+    //Increment clickers points and score by 1
+    User.update({
+        _id: login
+    }, {
+        $inc: {
+            score: 1,
+            coins: 1
+        }
+    }).exec();
+}
+
+
+//function handles different messages coming from ws
+function messenger(wsconn, userUrl, login, data, gameName) {
+    data = JSON.parse(data);
+
+    switch (data.type) {
+        case 'click':
+            if (exclusivity[gameName] == null || exclusivity[gameName] == login)
+                clicker(wsconn, userUrl, login, gameName, data.id);
+            break;
+
+        case 'bonus':
+            User.findOne({
+                _id: login
+            }, function(err, user) {
+                if (err) throw err;
+
+                switch (data.id) {
+                    case 'exclu':
+                        if (user.coins >= exPrice && exclusivity[gameName] == null) {
+                            user.update({
+                                $inc: {
+                                    coins: -exPrice
+                                }
+                            }).exec();
+                            exclusivity[gameName] = login;
+                            setTimeout(() => {
+                                exclusivity[gameName] = null;
+                            }, 5000);
+                        }
+                        break;
+
+                    case 'autoClick':
+                        if (user.coins >= aCPrice) {
+                            user.update({
+                                $inc: {
+                                    coins: -aCPrice
+                                }
+                            }).exec();
+                            wsconn.send(JSON.stringify({
+                                type: 'autoClick'
+                            }));
+                        }
+                        break;
+
+                    case 'big':
+                        if (user.coins >= bIPrice) {
+                            user.update({
+                                $inc: {
+                                    coins: -bIPrice
+                                }
+                            }).exec();
+                            wsconn.send(JSON.stringify({
+                                type: 'big'
+                            }));
+                        }
+                        break;
+
+                    default:
+                        console.log('An unknown message has been sent: ' + data.id);
+                }
+            });
+            break;
+
+        default:
+            console.log('An unknown message has been sent: ' + data);
+    }
+}

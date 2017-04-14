@@ -1,27 +1,31 @@
 {
   "name": "curiosity-aws",
-  "author": {
-    "name": "CravateRouge"
-  },
+  "version": "1.0.0",
   "description": "Simplified version of Curiosity for an AWS project",
-  "homepage": "https://github.com/CravateRouge/curiosity-aws",
-  "version": "0.1.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/CravateRouge/curiosity-aws.git"
-  },
+  "main": "app.js",
   "dependencies": {
     "bcrypt": ">=1.0.2",
-    "body-parser": "^1.16",
-    "cookie": "^0.3.1",
-    "cookie-parser": "^1.4",
-    "cookie-session": "^1.1",
-    "express": "^4.14",
-    "express-session": "1.15.2",
-    "mongoose": ">=1.2",
-    "twig": "^1.10.4"
+    "body-parser": ">=1.17.1",
+    "cookie-parser": ">=1.4.3",
+    "express": ">=4.15.2",
+    "express-session": ">=1.15.2",
+    "http": ">=0.0.0",
+    "mongoose": ">=4.9.4",
+    "twig": ">=1.10.4",
+    "ws": ">=2.2.3"
   },
-  "engines": {
-    "node": ">=0.10"
-  }
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CravateRouge/curiosity-aws.git"
+  },
+  "author": "CravateRougeAndTerrego",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CravateRouge/curiosity-aws/issues"
+  },
+  "homepage": "https://github.com/CravateRouge/curiosity-aws#readme"
 }
