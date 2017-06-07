@@ -1,6 +1,10 @@
 # curiosity-aws
 Simplified version of Curiosity for an AWS project
 
+HOW TO
+----
+Launch ./mongod before starting the app, that's all ;)
+
 TODO
 ----
 - [x] Add a .gitignore to avoid node_modules(except tower.js) in the github repo 

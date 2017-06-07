@@ -1,5 +1,11 @@
-# except this file
-!node_modules/tower.js
-
-# ignore npm modules
+#ignore all files in node_modules except the repo and tower.js
+!node_modules/
 node_modules/*
+!node_modules/tower.js
+!node_modules/user-model.js
+
+#ignore the database
+data/*
+
+#ignore test.js
+test.js

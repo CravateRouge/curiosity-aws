@@ -37,7 +37,13 @@ var connStr = 'mongodb://localhost/data';
 mongoose.connect(connStr, function(err) {
     if (err) throw err;
     console.log('Successfully connected to MongoDB');
-    User.updateMany({connected : true},{$set:{connected:false}}).exec();
+    User.updateMany({
+        connected: true
+    }, {
+        $set: {
+            connected: false
+        }
+    }).exec();
 });
 
 
@@ -175,7 +181,11 @@ app.all('/game', function(req, res) {
     else if (!towerInstances[gameName]) {
         towerInstances[gameName] = new tower.Tower(req.query['length'], req.query['layer']);
         exclusivity[gameName] = null;
-        res.render('curiosity.twig',{'bIPrice':bIPrice,'aCPrice':aCPrice,'exPrice':exPrice});
+        res.render('curiosity.twig', {
+            'bIPrice': bIPrice,
+            'aCPrice': aCPrice,
+            'exPrice': exPrice
+        });
     }
 
     else if (towerInstances[gameName].layer != req.query['layer'] ||
@@ -183,7 +193,11 @@ app.all('/game', function(req, res) {
         res.redirect('/logout');
 
     else
-        res.render('curiosity.twig',{'bIPrice':bIPrice,'aCPrice':aCPrice,'exPrice':exPrice});
+        res.render('curiosity.twig', {
+            'bIPrice': bIPrice,
+            'aCPrice': aCPrice,
+            'exPrice': exPrice
+        });
 });
 
 //Room selection page route (Connection needed)
@@ -353,6 +367,9 @@ function wsClose(login) {
 //
 function clicker(wsconn, userUrl, login, gameName, data) {
 
+    if (!towerInstances[gameName])
+        return;
+        
     var change = towerInstances[gameName].decrement(data);
 
     if (!change)
@@ -478,3 +495,5 @@ function messenger(wsconn, userUrl, login, data, gameName) {
             console.log('An unknown message has been sent: ' + data);
     }
 }
+
+
